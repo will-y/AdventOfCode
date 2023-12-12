@@ -4,6 +4,6 @@ public class Main {
     public static void main(String[] args) {
         PuzzleRunner runner = new PuzzleRunner();
 
-        runner.runPuzzle(23, 10, true, true);
+        runner.runPuzzle(23, 10, false, true);
     }
 }
