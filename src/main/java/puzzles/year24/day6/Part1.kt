@@ -6,10 +6,16 @@ class Part1 : Puzzle<Int?> {
     override fun getAnswer(inputString: String): Int {
         val map = inputString.lines().map(String::toCharArray);
 
+        return getPositionSet(map).size;
+    }
+
+    fun getPositionSet(map: List<CharArray>): Set<Pair<Int, Int>> {
         var position = getStartingPosition(map);
         var direction = Direction.NORTH;
+        val result = HashSet<Pair<Int, Int>>();
 
         while (true) {
+            result.add(position);
             var nextPosition = Direction.nextPos(direction, position);
 
             if (outsideMap(map, nextPosition)) {
@@ -22,19 +28,9 @@ class Part1 : Puzzle<Int?> {
             }
 
             position = nextPosition;
-            map[nextPosition.second][nextPosition.first] = '+';
         }
 
-        var count = 0;
-        for (y in map.indices) {
-            for (x in map[y].indices) {
-                if (map[y][x] == '+') {
-                    count++;
-                }
-            }
-        }
-
-        return count;
+        return result;
     }
 
     fun outsideMap(map: List<CharArray>, position: Pair<Int, Int>): Boolean {
@@ -45,7 +41,6 @@ class Part1 : Puzzle<Int?> {
         for (y in map.indices) {
             for (x in map[y].indices) {
                 if (map[y][x] == '^') {
-                    map[y][x] = '+';
                     return Pair(x, y);
                 }
             }

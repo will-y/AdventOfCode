@@ -4,31 +4,33 @@ import util.Puzzle
 import java.util.HashSet
 
 class Part2 : Puzzle<Int?> {
+    val part1 = Part1();
+
     override fun getAnswer(inputString: String): Int {
         val map = inputString.lines().map(String::toCharArray);
-        val startingPosition = getStartingPosition(map);
+        val positionsToCheck = part1.getPositionSet(map);
+        val startingPosition = part1.getStartingPosition(map);
         var result = 0;
 
-        for (y in map.indices) {
-            for (x in map[y].indices) {
-                if (x == startingPosition.first && y == startingPosition.second) {
-                    continue;
+        for (position in positionsToCheck) {
+            val x = position.first;
+            val y = position.second;
+            if (x == startingPosition.first && y == startingPosition.second) {
+                continue;
+            }
+            if (map[y][x] != '#') {
+                map[y][x] = '#';
+                if (isLoop(map, startingPosition)) {
+                    result++;
                 }
-                if (map[y][x] != '#') {
-                    map[y][x] = '#';
-                    if (isLoop(map, startingPosition)) {
-                        result++;
-//                        println("($x,$y)");
-                    }
-                    map[y][x] = '.';
-                }
+                map[y][x] = '.';
             }
         }
 
         return result;
     }
 
-    fun isLoop(map: List<CharArray>, startingPosition: Pair<Int, Int>): Boolean {
+    private fun isLoop(map: List<CharArray>, startingPosition: Pair<Int, Int>): Boolean {
         var position = startingPosition;
         var direction = Direction.NORTH;
         val visited = HashSet<Pair<Direction, Pair<Int, Int>>>();
@@ -40,7 +42,7 @@ class Part2 : Puzzle<Int?> {
             visited.add(Pair(direction, position));
             var nextPosition = Direction.nextPos(direction, position);
 
-            if (outsideMap(map, nextPosition)) {
+            if (part1.outsideMap(map, nextPosition)) {
                 return false;
             }
 
@@ -57,23 +59,4 @@ class Part2 : Puzzle<Int?> {
             position = nextPosition;
         }
     }
-
-    fun outsideMap(map: List<CharArray>, position: Pair<Int, Int>): Boolean {
-        return position.second >= map.size || position.second < 0 || position.first >= map[0].size || position.first < 0;
-    }
-
-    fun getStartingPosition(map: List<CharArray>): Pair<Int, Int> {
-        for (y in map.indices) {
-            for (x in map[y].indices) {
-                if (map[y][x] == '^') {
-                    map[y][x] = '.';
-                    return Pair(x, y);
-                }
-            }
-        }
-
-        throw RuntimeException("No dude found");
-    }
 }
-
-// 1845
