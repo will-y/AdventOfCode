@@ -1,7 +1,6 @@
 package puzzles.year24.day7
 
 import util.Puzzle
-import java.util.HashSet
 
 class Part2 : Puzzle<Long?> {
     override fun getAnswer(inputString: String): Long {
