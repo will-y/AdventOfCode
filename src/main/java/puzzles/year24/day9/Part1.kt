@@ -48,5 +48,3 @@ class Part1 : Puzzle<Long?> {
         return result;
     }
 }
-
-// 593815965
