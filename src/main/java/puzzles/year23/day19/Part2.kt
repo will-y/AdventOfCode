@@ -51,7 +51,6 @@ class Part2 : Puzzle<Long?> {
     private fun applyRule(rule: Rule, ruleKey: String, input: Pair<String, MutableMap<Char, Range>>): Set<Pair<String, MutableMap<Char, Range>>> {
         val processed = mutableSetOf<Pair<String, MutableMap<Char, Range>>>();
         var toProcess = mutableSetOf(input);
-        // TODO: After applying subrules, if anything left has the original input, process the next subrule
         for (subRule in rule.subRules) {
             val afterSplit = toProcess.flatMap { i -> splitOnSubRule(ruleKey, subRule, i.second) }
             processed.addAll(afterSplit.filter { i -> i.first != ruleKey })
@@ -80,7 +79,6 @@ class Part2 : Puzzle<Long?> {
                 return mutableSetOf(Pair(subRule.destination, input));
             } else { // Need to chop it up
                 val passesRuleMap = HashMap(input);
-                // TODO: check
                 passesRuleMap[character] = Range(threshold + 1, max);
                 val passesRule = Pair(subRule.destination, passesRuleMap);
 
@@ -97,7 +95,6 @@ class Part2 : Puzzle<Long?> {
                 return mutableSetOf(Pair(subRule.destination, input));
             } else { // Need to chop it up
                 val passesRuleMap = HashMap(input);
-                // TODO: check
                 passesRuleMap[character] = Range(min, threshold - 1);
                 val passesRule = Pair(subRule.destination, passesRuleMap);
 
@@ -141,14 +138,4 @@ class Part2 : Puzzle<Long?> {
 
         return Pair(label, Rule(default, subRules));
     }
-
-    // Idea: 1 input -> 1-4 (?) inputs -> continue until everything is done
 }
-
-// 200,000,000,000,000
-// 167,409,079,868,000
-// 167,409,079,868,000
-// 167,010,937,327,821
-// 5,428,990,157
-
-// 14,454,147,367,548
