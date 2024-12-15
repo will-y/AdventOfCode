@@ -1,7 +1,6 @@
 package puzzles.year24.day14
 
 import util.Puzzle
-import kotlin.math.abs
 
 class Part1 : Puzzle<Int?> {
     val width = 101
