@@ -12,8 +12,9 @@ class Part2 : Puzzle<Long?> {
         var result = 0L
         var count = 0
         for (pattern in patterns) {
+            // TODO: why?
             cache.clear()
-           val newCount = getCount(towels, pattern)
+            val newCount = getCount(towels, pattern)
 //            println("$pattern -> $newCount")
             result += newCount
             if (newCount > 0) {
