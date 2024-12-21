@@ -1,47 +1,40 @@
 package puzzles.year24.day20
 
 import util.Puzzle
+import java.io.Serializable
 import java.util.*
 
 class Part1 : Puzzle<Int?> {
-    var width: Int = 0
-    var height: Int = 0
-
     override fun getAnswer(inputString: String): Int {
         val map = inputString.lines().map {it.toCharArray()}
         val walls = mutableSetOf<Pair<Int, Int>>()
-        val open = mutableSetOf<Pair<Int, Int>>()
         var startingPoint = Pair(0, 0)
         var endingPoint = Pair(0, 0)
-        width = map[0].size
-        height = map.size
+        val width = map[0].size
+        val height = map.size
 
         for (y in map.indices) {
             for (x in map[0].indices) {
                 if (map[y][x] == '#') {
                     walls.add(Pair(x, y))
-                } else if (map[y][x] == '.') {
-                    open.add(Pair(x, y))
                 } else if (map[y][x] == 'S') {
-                    open.add(Pair(x, y))
                     startingPoint = Pair(x, y)
                 } else if (map[y][x] == 'E') {
-                    open.add(Pair(x, y))
                     endingPoint = Pair(x, y)
                 }
             }
         }
-        val test = computeDistanceMap(Node(endingPoint, 0, null), startingPoint, walls)
+        val distanceMap = computeDistanceMap(Node(endingPoint, 0, null), startingPoint, walls, width, height)
 
-        var currentNode: Node? = test.second
+        var currentNode: Node? = distanceMap.second
         var cheat = 0
         while (currentNode != null) {
             for (nextPosition in nextPositions(currentNode.pos)) {
                 for (nextNextPosition in nextPositions(nextPosition)) {
                     if (nextNextPosition == currentNode.pos) continue
 
-                    if (test.first.containsKey(nextNextPosition)) {
-                        val improvement = - test.first[nextNextPosition]!! - 2 + currentNode.pathLength
+                    if (distanceMap.first.containsKey(nextNextPosition)) {
+                        val improvement = - distanceMap.first[nextNextPosition]!! - 2 + currentNode.pathLength
 
                         if (improvement >= 100) {
                             cheat++
@@ -54,16 +47,16 @@ class Part1 : Puzzle<Int?> {
         return cheat
     }
 
-    fun computeDistanceMap(startingNode: Node, endingPoint: Pair<Int, Int>, walls: Set<Pair<Int, Int>>): Pair<Map<Pair<Int, Int>, Int>, Node> {
+    fun computeDistanceMap(startingNode: Node, endingPoint: Pair<Int, Int>, walls: Set<Pair<Int, Int>>, width: Int, height: Int): Pair<Map<Pair<Int, Int>, Int>, Node> {
         val result = mutableMapOf<Pair<Int, Int>, Int>()
-        val queue = PriorityQueue(Comparator.comparingInt<Node> { it.pathLength }.reversed())
+        val queue = PriorityQueue(Comparator.comparingInt<Node> { it.pathLength })
         val seen = mutableSetOf<Pair<Int, Int>>()
         queue.add(startingNode)
 
         while (queue.isNotEmpty()) {
             val currentNode = queue.poll()
 
-            if (seen.contains(currentNode.pos) || walls.contains(currentNode.pos) || outOfBounds(currentNode.pos)) {
+            if (seen.contains(currentNode.pos) || walls.contains(currentNode.pos) || outOfBounds(currentNode.pos, width, height)) {
                 seen.add(currentNode.pos)
                 continue
             }
@@ -86,7 +79,7 @@ class Part1 : Puzzle<Int?> {
         throw RuntimeException("error")
     }
 
-    fun outOfBounds(pos: Pair<Int, Int>): Boolean {
+    fun outOfBounds(pos: Pair<Int, Int>, width: Int, height: Int): Boolean {
         return pos.first >= width || pos.first < 0 || pos.second >= height || pos.second < 0
     }
 
@@ -102,4 +95,4 @@ class Part1 : Puzzle<Int?> {
     }
 }
 
-data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val prev: Node?)
+data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val prev: Node?): Serializable

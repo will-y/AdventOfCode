@@ -9,6 +9,6 @@ public class Main {
         }
         PuzzleRunner runner = new PuzzleRunner();
 
-        runner.runPuzzle(24, 20, true, true);
+        runner.runPuzzle(24, 20, false, true);
     }
 }
