@@ -4,7 +4,6 @@ import util.Puzzle
 import java.util.*
 
 class Part1 : Puzzle<Int?> {
-    val cache = mutableMapOf<Pair<Int, Int>, Int>()
     var width: Int = 0
     var height: Int = 0
 
@@ -32,61 +31,59 @@ class Part1 : Puzzle<Int?> {
                 }
             }
         }
+        val test = computeDistanceMap(Node(endingPoint, 0, null), startingPoint, walls)
 
-        val result = calculatePath(Node(startingPoint, 0, null, null), endingPoint, walls)
+        var currentNode: Node? = test.second
+        var cheat = 0
+        while (currentNode != null) {
+            for (nextPosition in nextPositions(currentNode.pos)) {
+                for (nextNextPosition in nextPositions(nextPosition)) {
+                    if (nextNextPosition == currentNode.pos) continue
 
-        var answer = 0
-        for (i in result.first.keys) {
-            if (result.second - i >= 100) {
-                answer += result.first[i]!!
+                    if (test.first.containsKey(nextNextPosition)) {
+                        val improvement = - test.first[nextNextPosition]!! - 2 + currentNode.pathLength
+
+                        if (improvement >= 100) {
+                            cheat++
+                        }
+                    }
+                }
             }
+            currentNode = currentNode.prev
         }
-
-        return answer
+        return cheat
     }
 
-    fun calculatePath(startingNode: Node, endingPoint: Pair<Int, Int>, walls: Set<Pair<Int, Int>>): Pair<Map<Int, Int>, Int> {
-        val cheats = mutableMapOf<Int, Int>()
-        val queue = PriorityQueue(Comparator.comparingInt<Node> { it.pathLength })
-        val seen = mutableSetOf<Node>()
+    fun computeDistanceMap(startingNode: Node, endingPoint: Pair<Int, Int>, walls: Set<Pair<Int, Int>>): Pair<Map<Pair<Int, Int>, Int>, Node> {
+        val result = mutableMapOf<Pair<Int, Int>, Int>()
+        val queue = PriorityQueue(Comparator.comparingInt<Node> { it.pathLength }.reversed())
+        val seen = mutableSetOf<Pair<Int, Int>>()
         queue.add(startingNode)
 
         while (queue.isNotEmpty()) {
             val currentNode = queue.poll()
 
-            if (seen.contains(currentNode) || outOfBounds(currentNode.pos)) {
-                seen.add(currentNode)
+            if (seen.contains(currentNode.pos) || walls.contains(currentNode.pos) || outOfBounds(currentNode.pos)) {
+                seen.add(currentNode.pos)
                 continue
             }
 
+            result[currentNode.pos] = currentNode.pathLength
+
             if (currentNode.pos == endingPoint) {
-                if (currentNode.cheated != null) {
-                    cheats.compute(currentNode.pathLength) { _, v -> (v ?: 0) + 1 }
-                    continue
-                } else {
-                    return Pair(cheats, currentNode.pathLength)
-                }
+                return Pair(result, currentNode)
             }
 
-            seen.add(currentNode)
+            seen.add(currentNode.pos)
 
             for (nextPosition in nextPositions(currentNode.pos)) {
-                if (walls.contains(nextPosition)) {
-                    if (currentNode.cheated == null) {
-                        for (nextNextPosition in nextPositions(nextPosition)) {
-                            if (nextNextPosition != currentNode.pos && !walls.contains(nextNextPosition) && !outOfBounds(nextNextPosition)) {
-                                queue.add(Node(nextNextPosition, currentNode.pathLength + 2, Pair(currentNode.pos, nextNextPosition), currentNode))
-                            }
-                        }
-                    }
-                } else {
-                    if (currentNode.prev == null || currentNode.prev.pos != nextPosition)
-                        queue.add(Node(nextPosition, currentNode.pathLength + 1, currentNode.cheated, currentNode))
+                if (!seen.contains(nextPosition)) {
+                    queue.add(Node(nextPosition, currentNode.pathLength + 1, currentNode))
                 }
             }
         }
 
-        throw RuntimeException("Cannot calculate path")
+        throw RuntimeException("error")
     }
 
     fun outOfBounds(pos: Pair<Int, Int>): Boolean {
@@ -105,26 +102,4 @@ class Part1 : Puzzle<Int?> {
     }
 }
 
-data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val cheated: Pair<Pair<Int, Int>, Pair<Int, Int>>?, val prev: Node?) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Node
-
-        if (pos != other.pos) return false
-        if (cheated != other.cheated) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = pos.hashCode()
-        result = 31 * result + (cheated?.hashCode() ?: 0)
-        return result
-    }
-
-}
-
-// 422 low
-// 2156 High
+data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val prev: Node?)
