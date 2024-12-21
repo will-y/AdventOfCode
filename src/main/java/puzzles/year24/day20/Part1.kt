@@ -33,59 +33,55 @@ class Part1 : Puzzle<Int?> {
             }
         }
 
-        val originalPath = calculatePath(Node(endingPoint, 0, null), startingPoint, walls)
+        val result = calculatePath(Node(startingPoint, 0, null, null), endingPoint, walls)
 
-        var currentNode: Node? = originalPath
-
-        while (currentNode != null) {
-            cache[currentNode.pos] = currentNode.pathLength
-            currentNode = currentNode.prev;
-        }
-
-        val cheats = mutableMapOf<Int, Int>()
-        currentNode = originalPath
-
-        while (currentNode != null) {
-            for (pos in nextPositions(currentNode.pos)) {
-                if (walls.contains(pos)) {
-                    walls.remove(pos)
-                    val timeSave = originalPath.pathLength - calculatePath(Node(currentNode.pos, originalPath.pathLength - currentNode.pathLength, null), endingPoint, walls).pathLength
-                    if (timeSave >= 100) {
-                        cheats.compute(timeSave) { _, v -> (v ?: 0) + 1 }
-                    }
-                    walls.add(pos)
-                }
+        var answer = 0
+        for (i in result.first.keys) {
+            if (result.second - i >= 100) {
+                answer += result.first[i]!!
             }
-
-            currentNode = currentNode.prev
         }
 
-        return cheats.values.sum()
+        return answer
     }
 
-    fun calculatePath(startingNode: Node, endingPoint: Pair<Int, Int>, walls: Set<Pair<Int, Int>>): Node {
+    fun calculatePath(startingNode: Node, endingPoint: Pair<Int, Int>, walls: Set<Pair<Int, Int>>): Pair<Map<Int, Int>, Int> {
+        val cheats = mutableMapOf<Int, Int>()
         val queue = PriorityQueue(Comparator.comparingInt<Node> { it.pathLength })
-        val seen = mutableSetOf<Pair<Int, Int>>()
+        val seen = mutableSetOf<Node>()
         queue.add(startingNode)
 
         while (queue.isNotEmpty()) {
             val currentNode = queue.poll()
 
-            if (currentNode.pos == endingPoint) {
-                return currentNode
+            if (seen.contains(currentNode) || outOfBounds(currentNode.pos)) {
+                seen.add(currentNode)
+                continue
             }
 
-            if (seen.contains(currentNode.pos) || walls.contains(currentNode.pos) || outOfBounds(currentNode.pos)) {
-                seen.add(currentNode.pos)
-                continue
-            } else {
-                seen.add(currentNode.pos)
-                for (nextPosition in nextPositions(currentNode.pos)) {
-                    if (cache.containsKey(nextPosition)) {
-                        queue.add(Node(endingPoint, cache[nextPosition]!! + currentNode.pathLength + 1, currentNode))
-                    } else {
-                        queue.add(Node(nextPosition, currentNode.pathLength + 1, currentNode))
+            if (currentNode.pos == endingPoint) {
+                if (currentNode.cheated != null) {
+                    cheats.compute(currentNode.pathLength) { _, v -> (v ?: 0) + 1 }
+                    continue
+                } else {
+                    return Pair(cheats, currentNode.pathLength)
+                }
+            }
+
+            seen.add(currentNode)
+
+            for (nextPosition in nextPositions(currentNode.pos)) {
+                if (walls.contains(nextPosition)) {
+                    if (currentNode.cheated == null) {
+                        for (nextNextPosition in nextPositions(nextPosition)) {
+                            if (nextNextPosition != currentNode.pos && !walls.contains(nextNextPosition) && !outOfBounds(nextNextPosition)) {
+                                queue.add(Node(nextNextPosition, currentNode.pathLength + 2, Pair(currentNode.pos, nextNextPosition), currentNode))
+                            }
+                        }
                     }
+                } else {
+                    if (currentNode.prev == null || currentNode.prev.pos != nextPosition)
+                        queue.add(Node(nextPosition, currentNode.pathLength + 1, currentNode.cheated, currentNode))
                 }
             }
         }
@@ -109,7 +105,7 @@ class Part1 : Puzzle<Int?> {
     }
 }
 
-data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val prev: Node?) {
+data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val cheated: Pair<Pair<Int, Int>, Pair<Int, Int>>?, val prev: Node?) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -117,16 +113,17 @@ data class Node(val pos: Pair<Int, Int>, val pathLength: Int, val prev: Node?) {
         other as Node
 
         if (pos != other.pos) return false
-        if (pathLength != other.pathLength) return false
+        if (cheated != other.cheated) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = pos.hashCode()
-        result = 31 * result + pathLength
+        result = 31 * result + (cheated?.hashCode() ?: 0)
         return result
     }
+
 }
 
 // 422 low
