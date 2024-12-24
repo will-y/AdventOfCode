@@ -1,7 +1,6 @@
 package puzzles.year24.day21
 
 import util.Puzzle
-import kotlin.math.max
 
 class Part2 : Puzzle<Long?> {
     private val numPadPosMap = mapOf(
@@ -36,7 +35,7 @@ class Part2 : Puzzle<Long?> {
         Pair('>', 1)
     )
 
-    private val costCache = mutableMapOf<String, Int>()
+    private val costCache = mutableMapOf<String, Long>()
 
     private val dirPadPaths = populateDirPadMap()
 
@@ -66,19 +65,20 @@ class Part2 : Puzzle<Long?> {
             dirPadPaths[key] = newList
         }
 
+        // TODO: More printing to see why this doesn't work for part 1, makes no sense
         dirPadPaths[Pair('v', 'A')] = listOf("^>A")
     }
 
-    fun getCost(s: String): Int {
+    fun getCost(s: String): Long {
         if (costCache.containsKey(s)) {
             return costCache[s]!!
         }
-        var cost = 0
+        var cost = 0L
         for (i in 0..<s.length - 1) {
-            cost += dirPadPaths[Pair(s[i], s[i+1])]!![0].length
+            cost += dirPadPaths[Pair(s[i], s[i+1])]!![0].length.toLong()
         }
         for (c in s) {
-            cost += costMap[c]!!
+            cost += costMap[c]!!.toLong()
         }
 
         costCache[s] = cost
@@ -86,39 +86,54 @@ class Part2 : Puzzle<Long?> {
     }
 
     fun getNewCost(s1: String, s2: String, c1: Long, c2: Long): Long {
-        return c1 + c2 + dirPadPaths[Pair(s1.last(), s2.first())]!![0].length
+        return c1 + c2 + dirPadPaths[Pair(s1.last(), s2.first())]!![0].length.toLong()
     }
 
-    fun numFromString(code: CharArray): Int {
-        return code.joinToString("").substring(0, 3).toInt()
+    fun numFromString(code: CharArray): Long {
+        return code.joinToString("").substring(0, 3).toLong()
     }
 
-    fun getMinPathLength(code: CharArray): Int {
+    fun getMinPathLength(code: CharArray): Long {
         // Num pad min inputs
         val numPadPaths = typeNumbers(code)
         var result = numPadPaths.map {listOf(it)}
         var prevCost = 0L
-        for (i in 0..<2) {
-            val temp = iterate(result, prevCost)
+        for (i in 0..<25) {
+            val temp = iterate(result, 0)
             result = temp.first
             prevCost = temp.second
-            println("Iteration $i Done")
+            println("Iteration $i Done $prevCost")
         }
-//        val firstIteration = iterate(numPadPaths)
-//        val secondIteration = iterate(firstIteration)
 
-        return result[0].map { it.length }.sum()
+        var minPathLength = 0L
+
+        for (s in result[0].map {it.length}) {
+            minPathLength += s
+        }
+
+        println("Answer: $minPathLength")
+
+        return minPathLength
     }
 
+    val stepCache = HashMap<Pair<String, Char>, Pair<List<String>, Long>>()
+
     fun nextStep(pathSegment: String, previousChar: Char, prevCost: Long): Pair<List<String>, Long> {
+        if (stepCache.containsKey(Pair(pathSegment, previousChar))) {
+            return stepCache[Pair(pathSegment, previousChar)]!!
+        }
+
         val newPath = StringBuilder(dirPadPaths[Pair(previousChar, pathSegment[0])]!![0])
-        var newCost = prevCost
+        var newCost = 0L
         for (i in 0..<pathSegment.length - 1) {
             val dirPadPathsResult = dirPadPaths[Pair(pathSegment[i], pathSegment[i + 1])]!![0]
-            newCost = getNewCost(newPath.last().toString(), dirPadPathsResult, newCost, getCost(dirPadPathsResult).toLong())
+            newCost += getNewCost(newPath.last().toString(), dirPadPathsResult, 0L, getCost(dirPadPathsResult))
             newPath.append(dirPadPathsResult)
         }
-        return Pair(splitString(newPath.toString(), 100), newCost)
+
+        val toReturn = Pair(splitString(newPath.toString(), 2048), newCost)
+        stepCache[Pair(pathSegment, previousChar)] = toReturn
+        return toReturn
     }
 
     fun splitString(s: String, size: Int): List<String> {
@@ -140,13 +155,12 @@ class Part2 : Puzzle<Long?> {
     fun iterate(paths: List<List<String>>, prevCost: Long): Pair<List<List<String>>, Long> {
         val costMap = mutableMapOf<Long, MutableList<MutableList<String>>>()
         for (path in paths) {
-            // TODO: Turn this into a list of strings with size x and then cache the result of applying the step function on them
             var newCost = prevCost
             val result = mutableListOf<String>()
             var previousChar = 'A'
             for (pathSegment in path) {
                 val stepResult = nextStep(pathSegment, previousChar, newCost)
-                previousChar = stepResult.first.last().last()
+                previousChar = pathSegment.last()
                 result.addAll(stepResult.first)
                 newCost += stepResult.second
             }
@@ -298,3 +312,12 @@ private operator fun List<String>.times(es: List<String>): List<String> {
 private operator fun Char.times(i: Int): String {
     return this.toString().repeat(i)
 }
+
+// 167709506993236 Too High
+// 67417502769962 Too Low
+
+// 91917445336
+// 89741193602
+// 80732180764
+// 87513499936
+// 86475783010
