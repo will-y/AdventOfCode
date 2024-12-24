@@ -19,8 +19,8 @@ public class PuzzleRunner {
 
             Puzzle puzzle = (Puzzle) puzzleConstructor.newInstance();
 
-//            Object testAnswer = puzzle.getAnswer(testInput);
-//            System.out.println("Test Answer: " + testAnswer);
+            Object testAnswer = puzzle.getAnswer(testInput);
+            System.out.println("Test Answer: " + testAnswer);
 
             if (runActual) {
                 long startTime = System.nanoTime();

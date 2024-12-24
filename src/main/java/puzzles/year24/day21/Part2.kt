@@ -40,18 +40,57 @@ class Part2 : Puzzle<Long?> {
     private val dirPadPaths = populateDirPadMap()
 
     override fun getAnswer(inputString: String): Long {
-        testing()
+        fixDirPadPaths()
         val codes = inputString.lines().map {it.toCharArray()}
+
         var result = 0L
 
         for (code in codes) {
-            result += getMinPathLength(code) * numFromString(code)
+            val numPadPaths = typeNumbers(code)
+            var minResult = Long.MAX_VALUE
+            for (numPadPath in numPadPaths) {
+                var resultMap = stringToMap(numPadPath)
+                for (i in 0..<25) {
+                    resultMap = newIdeaStep(resultMap)
+
+                }
+
+                if (resultMap.values.sum() < minResult) {
+                    minResult = resultMap.values.sum()
+                }
+            }
+
+            result += minResult * numFromString(code)
         }
 
         return result
     }
 
-    fun testing() {
+    fun newIdeaStep(map: Map<String, Long>): Map<String, Long> {
+        val result = mutableMapOf<String, Long>()
+
+        for (entry in map) {
+            val toAddMap = stringToMap(dirPadPaths[Pair(entry.key[0], entry.key[1])]!![0])
+
+            for (entry2 in toAddMap) {
+                result.compute(entry2.key) { _, v -> (v ?: 0L) + entry2.value * entry.value }
+            }
+        }
+        return result
+    }
+
+    fun stringToMap(s: String): Map<String, Long> {
+        val result = mutableMapOf<String, Long>()
+        var prevChar = 'A'
+        for (c in s) {
+            result.compute(prevChar.toString() + c) {_, v -> (v ?: 0L) + 1L}
+            prevChar = c
+        }
+
+        return result
+    }
+
+    fun fixDirPadPaths() {
         for (key in dirPadPaths.keys) {
             val value = dirPadPaths[key]!!
             val newList = mutableListOf<String>()
@@ -65,7 +104,6 @@ class Part2 : Puzzle<Long?> {
             dirPadPaths[key] = newList
         }
 
-        // TODO: More printing to see why this doesn't work for part 1, makes no sense
         dirPadPaths[Pair('v', 'A')] = listOf("^>A")
     }
 
@@ -85,97 +123,8 @@ class Part2 : Puzzle<Long?> {
         return cost
     }
 
-    fun getNewCost(s1: String, s2: String, c1: Long, c2: Long): Long {
-        return c1 + c2 + dirPadPaths[Pair(s1.last(), s2.first())]!![0].length.toLong()
-    }
-
     fun numFromString(code: CharArray): Long {
         return code.joinToString("").substring(0, 3).toLong()
-    }
-
-    fun getMinPathLength(code: CharArray): Long {
-        // Num pad min inputs
-        val numPadPaths = typeNumbers(code)
-        var result = numPadPaths.map {listOf(it)}
-        var prevCost = 0L
-        for (i in 0..<25) {
-            val temp = iterate(result, 0)
-            result = temp.first
-            prevCost = temp.second
-            println("Iteration $i Done $prevCost")
-        }
-
-        var minPathLength = 0L
-
-        for (s in result[0].map {it.length}) {
-            minPathLength += s
-        }
-
-        println("Answer: $minPathLength")
-
-        return minPathLength
-    }
-
-    val stepCache = HashMap<Pair<String, Char>, Pair<List<String>, Long>>()
-
-    fun nextStep(pathSegment: String, previousChar: Char, prevCost: Long): Pair<List<String>, Long> {
-        if (stepCache.containsKey(Pair(pathSegment, previousChar))) {
-            return stepCache[Pair(pathSegment, previousChar)]!!
-        }
-
-        val newPath = StringBuilder(dirPadPaths[Pair(previousChar, pathSegment[0])]!![0])
-        var newCost = 0L
-        for (i in 0..<pathSegment.length - 1) {
-            val dirPadPathsResult = dirPadPaths[Pair(pathSegment[i], pathSegment[i + 1])]!![0]
-            newCost += getNewCost(newPath.last().toString(), dirPadPathsResult, 0L, getCost(dirPadPathsResult))
-            newPath.append(dirPadPathsResult)
-        }
-
-        val toReturn = Pair(splitString(newPath.toString(), 2048), newCost)
-        stepCache[Pair(pathSegment, previousChar)] = toReturn
-        return toReturn
-    }
-
-    fun splitString(s: String, size: Int): List<String> {
-        val result = mutableListOf<String>()
-        var index = 0
-
-        while (index + size < s.length) {
-            result.add(s.substring(index, index + size))
-            index += size
-        }
-
-        if (index < s.length) {
-            result.add(s.substring(index))
-        }
-
-        return result
-    }
-
-    fun iterate(paths: List<List<String>>, prevCost: Long): Pair<List<List<String>>, Long> {
-        val costMap = mutableMapOf<Long, MutableList<MutableList<String>>>()
-        for (path in paths) {
-            var newCost = prevCost
-            val result = mutableListOf<String>()
-            var previousChar = 'A'
-            for (pathSegment in path) {
-                val stepResult = nextStep(pathSegment, previousChar, newCost)
-                previousChar = pathSegment.last()
-                result.addAll(stepResult.first)
-                newCost += stepResult.second
-            }
-            costMap.compute(newCost) {_, v ->
-                var v1 = v
-                if (v == null) {
-                    v1 = mutableListOf()
-                }
-                v1!!.add(result)
-                return@compute v1
-            }
-        }
-
-        val cost = costMap.keys.min()
-        return Pair(costMap[cost]!!, cost)
     }
 
     fun typeNumbers(numbers: CharArray): List<String> {
@@ -312,12 +261,3 @@ private operator fun List<String>.times(es: List<String>): List<String> {
 private operator fun Char.times(i: Int): String {
     return this.toString().repeat(i)
 }
-
-// 167709506993236 Too High
-// 67417502769962 Too Low
-
-// 91917445336
-// 89741193602
-// 80732180764
-// 87513499936
-// 86475783010
