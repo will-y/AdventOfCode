@@ -9,31 +9,27 @@ class Part2 : Puzzle<Int?> {
         var count = 0
 
         var lastCount = -1
-        var currentMap = map
         while (lastCount != 0) {
-            val r = getRemovedAndRemove(currentMap)
-            lastCount = r.first
-            currentMap = r.second
+            lastCount = getRemovedAndRemove(map)
             count += lastCount
         }
 
         return count
     }
 
-    fun getRemovedAndRemove(map: List<Array<Char>>): Pair<Int, List<Array<Char>>> {
-        val copy = map.map {a -> Array(a.size) { i -> a[i]} }
+    fun getRemovedAndRemove(map: List<Array<Char>>): Int {
         var count = 0
 
         for (y in map.indices) {
             for (x in map[0].indices) {
                 if (map[y][x] == '@' && canPickup(map, x, y)) {
                     count++
-                    copy[y][x] = '.'
+                    map[y][x] = '.'
                 }
             }
         }
 
-        return Pair(count, copy)
+        return count
     }
 
     fun canPickup(map: List<Array<Char>>, x: Int, y: Int): Boolean {
