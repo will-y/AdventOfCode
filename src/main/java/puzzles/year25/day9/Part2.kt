@@ -6,9 +6,6 @@ import kotlin.math.max
 import kotlin.math.min
 
 class Part2 : Puzzle<Long?> {
-    // 1. Check if border is all green, if so, good (I hope)
-    // 2. To check if a pixel is green, count the lines like before. Need a set of vertical and horizontal lines?
-    // 3. Do part 1 with additional check
     override fun getAnswer(inputString: String): Long {
         val input = inputString.trim().lines().map{ s -> s.split(",").map { it.toLong() }}.toMutableList()
         input.add(input[0])
@@ -42,7 +39,7 @@ class Part2 : Puzzle<Long?> {
     }
 
     fun area(x1: List<Long>, x2: List<Long>): Long {
-        return (x1[0] - x2[0] + 1).absoluteValue * (x1[1] - x2[1] + 1).absoluteValue
+        return ((x1[0] - x2[0]).absoluteValue + 1) * ((x1[1] - x2[1]).absoluteValue + 1)
     }
 
     fun isValid(x1: List<Long>, x2: List<Long>, hLines: List<Line>, vLines: List<Line>): Boolean {
@@ -51,11 +48,7 @@ class Part2 : Puzzle<Long?> {
         val xMin = min(x1[0], x2[0]) * 2
         val xMax = max(x1[0], x2[0]) * 2
 
-        return isPointIn(listOf(xMin, yMin), hLines, vLines)
-                && isPointIn(listOf(xMin, yMax), hLines, vLines)
-                && isPointIn(listOf(xMax, yMin), hLines, vLines)
-                && isPointIn(listOf(xMax, yMax), hLines, vLines)
-                && isHorizontalLineValid(hLineOf(xMin, xMax, yMin), hLines, vLines)
+        return isHorizontalLineValid(hLineOf(xMin, xMax, yMin), hLines, vLines)
                 && isHorizontalLineValid(hLineOf(xMin, xMax, yMax), hLines, vLines)
                 && isVerticalLineValid(vLineOf(xMin, yMin, yMax), hLines, vLines)
                 && isVerticalLineValid(vLineOf(xMax, yMin, yMax), hLines, vLines)
@@ -105,13 +98,6 @@ class Part2 : Puzzle<Long?> {
         }
 
         return true
-    }
-
-    fun isPointIn(p: List<Long>, hLines: List<Line>, vLines: List<Line>): Boolean {
-        val filteredHLines = hLines.filter { p[0] > it.p1[0] && p[0] < it.p2[0] && p[1] > it.p1[1] }
-        val filteredVLines = vLines.filter { p[1] > it.p1[1] && p[1] < it.p2[1] && p[0] > it.p1[0] }
-
-        return filteredHLines.size % 2 == 1 && filteredVLines.size % 2 == 1
     }
 
     fun doubleInputs(input: List<List<Long>>): MutableList<List<Long>> {
