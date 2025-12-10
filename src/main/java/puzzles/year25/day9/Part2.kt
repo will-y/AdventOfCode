@@ -18,11 +18,9 @@ class Part2 : Puzzle<Long?> {
 
         var allPairs: MutableList<Pair<List<Long>, List<Long>>> = ArrayList()
 
-        for (i in input) {
-            for (j in input) {
-                if (i != j) {
-                    allPairs.add(i to j)
-                }
+        for (i in input.indices) {
+            for (j in i + 1..input.size - 1) {
+                allPairs.add(input[i] to input[j])
             }
         }
 
