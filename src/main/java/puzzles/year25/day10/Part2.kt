@@ -2,6 +2,8 @@ package puzzles.year25.day10
 
 import org.chocosolver.solver.Model
 import org.chocosolver.solver.Solver
+import org.chocosolver.solver.search.strategy.Search.bestBound
+import org.chocosolver.solver.search.strategy.Search.domOverWDegSearch
 import util.Puzzle
 
 class Part2 : Puzzle<Int?> {
@@ -10,7 +12,7 @@ class Part2 : Puzzle<Int?> {
         var result = 0
         for (i in input) {
             val matrix = calculateMatrix(i)
-            result += linearSolver(matrix, i.second.size, i.first.max(), i.first.min(), (i.first.sum() / 1.5).toInt())
+            result += linearSolver(matrix, i.second.size, i.first.max(), i.first.max(), i.first.sum())
         }
 
         return result
@@ -31,18 +33,19 @@ class Part2 : Puzzle<Int?> {
         val objectiveSum = model.intVar("objectiveSum", solutionLowerBound, solutionUpperBound)
         model.sum(vars, "=", objectiveSum).post()
 
+        model.setObjective(false, objectiveSum)
+
         val solver: Solver = model.solver
+        solver.setSearch(bestBound(domOverWDegSearch(*vars)))
 
-        val solution = solver.findOptimalSolution(objectiveSum, false)
-
-        if (solution != null) {
-            println(vars.contentToString())
-
-            return solution.getIntVal(objectiveSum)
-        } else {
-            println("No integer solution found.")
-            return 0
+        var bestSolution = 0
+        while (solver.solve()) {
+            bestSolution = objectiveSum.value
         }
+
+        println("Solution found: $bestSolution")
+
+        return bestSolution
     }
 
     fun parse(input: List<String>): Pair<List<Int>, List<List<Int>>> {
