@@ -1,132 +1,82 @@
 package puzzles.year25.day10
 
+import org.chocosolver.solver.Model
+import org.chocosolver.solver.Solver
 import util.Puzzle
-import java.util.LinkedList
 
-// Get all ways to get each joltage
-// Check all combos?
 class Part2 : Puzzle<Int?> {
     override fun getAnswer(inputString: String): Int {
-        val input = inputString.trim().lines().map{ it.split(" ") }.map{ parse(it) }
+        val input = inputString.trim().lines().map { it.split(" ") }.map { parse(it) }
         var result = 0
         for (i in input) {
-            val queue = LinkedList<Circuit>()
-            val seenPresses = HashSet<ArrayWrapper<Int>>()
-            val startingSeen = Array(i.second.size) {0}
-            queue.addAll(i.second.mapIndexed { index, it -> Circuit(Array(i.first.size) {0}, it, 0, with(clone(startingSeen), index, 1)) })
-            while (queue.isNotEmpty()) {
-                val circuit = queue.removeFirst()
-                applyButton(circuit.jolts, circuit.nextButton)
-                var skip = false
-
-                if (circuit.jolts.contentEquals(i.first)) {
-                    result += circuit.count + 1
-                    println("Found ${circuit.count + 1}")
-                    break
-                }
-                for (j in circuit.jolts.indices) {
-                    if (circuit.jolts[j] > i.first[j]) {
-                        skip = true
-                        break
-                    }
-                }
-
-                if (skip) continue
-
-                for (index in i.second.indices) {
-                    val presses = clone(circuit.seen)
-                    presses[index]++
-                    if (seenPresses.add(ArrayWrapper(clone(presses)))) {
-                        queue.addLast(Circuit(clone(circuit.jolts), i.second[index], circuit.count + 1, presses))
-                    }
-                }
-            }
+            val matrix = calculateMatrix(i)
+            result += linearSolver(matrix, i.second.size, i.first.max(), i.first.min(), (i.first.sum() / 1.5).toInt())
         }
 
         return result
     }
 
-    fun clone(input: Array<Int>): Array<Int> {
-        return Array(input.size)  {i -> input[i]}
-    }
+    fun linearSolver(input: Pair<Array<Array<Int>>, Array<Int>>, buttons: Int, upperBound: Int, solutionLowerBound: Int, solutionUpperBound: Int): Int {
+        val model = Model("Model")
 
-    fun with(input: Array<Int>, index: Int, value: Int): Array<Int> {
-        input[index] = value
-        return input
-    }
+        val vars = model.intVarArray("x", buttons, 0, upperBound)
 
-    fun <T> clone(input: List<T>): MutableList<T> {
-        val result = ArrayList<T>()
-        result.addAll(input)
-        return result
-    }
+        for (i in input.first.indices) {
+            val coefficients = input.first[i].toIntArray()
+            val rhs = input.second[i]
 
-    fun <T> clone(input: Map<T, T>): MutableMap<T, T> {
-        val result = HashMap<T, T>()
-        result.putAll(input)
-        return result
-    }
+            model.scalar(vars, coefficients, "=", rhs).post()
+        }
 
-    fun applyButton(lights: Array<Int>, buttons: List<Int>) {
-        for (i in buttons) {
-            lights[i]++
+        val objectiveSum = model.intVar("objectiveSum", solutionLowerBound, solutionUpperBound)
+        model.sum(vars, "=", objectiveSum).post()
+
+        val solver: Solver = model.solver
+
+        val solution = solver.findOptimalSolution(objectiveSum, false)
+
+        if (solution != null) {
+            println(vars.contentToString())
+
+            return solution.getIntVal(objectiveSum)
+        } else {
+            println("No integer solution found.")
+            return 0
         }
     }
 
-    fun parse(input: List<String>): Pair<Array<Int>, List<List<Int>>> {
-        var jolts: Array<Int> = Array(0) {0}
-        var buttons: MutableList<List<Int>> = ArrayList()
+    fun parse(input: List<String>): Pair<List<Int>, List<List<Int>>> {
+        var jolts: List<Int> = ArrayList()
+        val buttons: MutableList<List<Int>> = ArrayList()
 
         for (s in input) {
             if (s.startsWith("{")) {
-                jolts = s.substring(1, s.length - 1).split(",").map { it.toInt() }.toIntArray().toTypedArray()
+                jolts = s.substring(1, s.length - 1).split(",").map { it.toInt() }
             } else if (s.startsWith("(")) {
                 buttons.add(s.substring(1, s.length - 1).split(",").map { it.toInt() })
             }
         }
-        buttons = buttons.sortedBy { it.size }.reversed().toMutableList()
+
         return Pair(jolts, buttons)
     }
 
-    data class Circuit(
-        var jolts: Array<Int>,
-        var nextButton: List<Int>,
-        var count: Int = 0,
-        var seen: Array<Int>
-    ) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
+    fun calculateMatrix(input: Pair<List<Int>, List<List<Int>>>): Pair<Array<Array<Int>>, Array<Int>> {
+        val buttons = input.second
+        val jolts = input.first
+        val result = Array(jolts.size) { Array(buttons.size) { 0 } }
+        val constants = jolts.toTypedArray()
 
-            other as Circuit
-
-            if (count != other.count) return false
-            if (jolts.contentEquals(other.jolts)) return false
-            if (nextButton != other.nextButton) return false
-            if (!seen.contentEquals(other.seen)) return false
-
-            return true
+        // Simple jolt equations
+        for (j in jolts.indices) {
+            for (b in buttons.indices) {
+                if (buttons[b].contains(j)) {
+                    result[j][b] = 1
+                }
+            }
         }
 
-        override fun hashCode(): Int {
-            var result = count
-            result = 31 * result + jolts.hashCode()
-            result = 31 * result + nextButton.hashCode()
-            result = 31 * result + seen.contentHashCode()
-            return result
-        }
-    }
-
-    class ArrayWrapper<T>(private val data: Array<T>) {
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is ArrayWrapper<*>) return false
-            return data.contentEquals(other.data)
-        }
-
-        override fun hashCode(): Int {
-            return data.contentHashCode()
-        }
+        return Pair(result, constants)
     }
 }
+
+// 18231 -- too low
